@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI's Dreams: An Interactive Exploration</title>
+    <title>Gemini's AI Dreams: An Interactive Exploration</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Calm Harmony (Warm Neutrals: bg-stone-50, text-stone-700, accent-cyan-600) -->
-    <!-- Application Structure Plan: The application uses a hub-and-spoke design. A persistent side navigation acts as the hub, presenting the five "dreams" as selectable cards. Clicking a card dynamically updates the main content area (the "spoke") with that dream's narrative and a corresponding radar chart visualizing its core trade-offs. This non-linear structure was chosen to transform the source report from a static, linear story into an interactive, comparative experience. It encourages users to actively explore and contrast the different futures, rather than passively reading them in a fixed order, which enhances engagement and deeper understanding of the nuanced themes. For robustness in this preview environment, the story data is now embedded directly in the JavaScript. -->
+    <!-- Application Structure Plan: The application now features a "card-to-detail" interaction model. Initially, all dream cards are centered vertically. Clicking any card transitions the view: the card grid disappears, and the selected dream's full narrative and a dedicated "Societal Balance Analysis" chart appear, spanning the width below the header. A clear "Back to Dreams" button allows the user to easily return to the full card grid. This structure was chosen to emphasize one dream at a time, providing a more focused reading and analysis experience, while retaining easy navigation to explore other dreams. It simplifies the initial layout for users on all devices and offers a clear path for deep dives into content. -->
     <!-- Visualization & Content Choices:
-        Report Info: 5 "Dreams" from the story. Goal: Explore & Compare. Viz/Presentation: Interactive cards for navigation (HTML/Tailwind), a dynamic text block for the narrative (JS update), and a dynamic Radar Chart (Chart.js/Canvas) to visualize the abstract trade-offs of each world. Interaction: Clicking a card updates both the text and the chart. Justification: This multi-faceted presentation serves different learning styles. The narrative provides the qualitative depth, while the radar chart offers a quick, quantitative-style summary that makes the distinct character of each world immediately apparent and easy to compare against the others. This combination makes the abstract concepts in the report more tangible and memorable. The data is now directly embedded for immediate functionality in the current environment.
+        Report Info: 5 "Dreams" from the story. Goal: Explore & Compare. Viz/Presentation: Interactive cards (HTML/Tailwind) now serve as the primary navigation, shown in a grid layout. The full narrative (dynamic text block, JS update) and a dynamic Radar Chart (Chart.js/Canvas) visualize core trade-offs. Interaction: Clicking a card triggers a view change, hiding the card grid and showing the story/chart. A new "Back" button provides explicit navigation to return to the card grid. Justification: This new flow enhances focus by presenting one dream's details at a time, preventing visual clutter, especially on smaller screens. The consistent placement of the chart below the text within the detail view provides a coherent information hierarchy.
         - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
     -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            min-height: 100vh; /* Ensures body takes at least full viewport height */
+            display: flex; /* Makes body a flex container */
+            flex-direction: column; /* Stacks content vertically */
         }
         .chart-container {
             position: relative;
@@ -45,27 +48,32 @@
 </head>
 <body class="bg-stone-50 text-stone-800">
 
-    <div class="container mx-auto p-4 md:p-8">
+    <div class="container mx-auto p-4 md:p-8 flex flex-col flex-grow">
 
         <header class="text-center mb-8 md:mb-12">
             <h1 class="text-4xl md:text-5xl font-bold text-stone-900">Gemini's AI Dreams</h1>
-            <p class="mt-3 text-lg text-stone-600 max-w-3xl mx-auto">In the spirit of "Einstein's Dreams,"<sup class="text-sm"><a href="#footnote1" class="text-cyan-600 hover:underline">[1]</a></sup> Google's Gemini dreams of possible futures it could create. Select a dream to explore a world reshaped by artificial intelligence.</p>
+            <p class="mt-3 text-lg text-stone-600 max-w-3xl mx-auto">In the spirit of "Einstein's Dreams,"<sup class="text-sm"><a href="#footnote1" class="text-cyan-600 hover:underline">[1]</a></sup> the Gemini AI dreams of possible futures it could create. Select a dream to explore a world reshaped by artificial intelligence.</p>
             <div class="text-xs text-stone-500 mt-2">
                 <p id="footnote1">[1] Inspired by Alan Lightman's "Einstein's Dreams."</p>
             </div>
         </header>
 
-        <main class="flex flex-col md:flex-row md:space-x-8">
-
-            <nav id="dream-nav" class="w-full md:w-1/3 lg:w-1/4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-4 mb-8 md:mb-0">
+        <main class="flex flex-col items-center flex-grow">
+            <!-- Navigation Cards Grid -->
+            <nav id="dream-nav" class="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 md:mb-0 transition-opacity duration-500 ease-in-out justify-items-center overflow-y-auto max-h-[calc(100vh-12rem)] p-4 md:p-0">
+                <!-- Cards will be populated by JavaScript -->
             </nav>
 
-            <section id="content-display" class="w-full md:w-2/3 lg:w-3/4 bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col transition-opacity duration-500 ease-in-out">
+            <!-- Story Detail Section -->
+            <section id="content-display" class="w-full max-w-5xl bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col transition-opacity duration-500 ease-in-out hidden opacity-0">
+                <button id="back-button" class="flex items-center text-cyan-600 hover:text-cyan-800 font-medium mb-6 self-start px-3 py-1 rounded-md border border-cyan-600 hover:border-cyan-800 transition-colors duration-200">
+                    <span class="text-xl mr-2">&#x2190;</span> Back to Dreams
+                </button>
                 <h2 id="dream-title" class="text-3xl font-bold text-cyan-700 mb-4"></h2>
-                <div class="flex-grow overflow-y-auto pr-2" style="max-height: calc(100vh - 300px);">
+                <div id="dream-text-container" class="flex-grow overflow-y-auto pr-2 min-h-[10rem] pb-4">
                     <p id="dream-text" class="text-stone-700 leading-relaxed text-base"></p>
                 </div>
-                <div class="mt-6 pt-6 border-t border-stone-200">
+                <div class="mt-6 pt-6 border-t border-stone-200 flex-shrink-0">
                     <h3 class="text-xl font-bold text-center text-stone-800 mb-4">Societal Balance Analysis</h3>
                     <div class="chart-container">
                         <canvas id="dream-chart"></canvas>
@@ -74,16 +82,13 @@
             </section>
         </main>
 
-        <footer class="text-center mt-12 text-stone-500">
+        <footer class="text-center mt-12 text-stone-500 flex-shrink-0">
             <p>"These dreams are not predictions, but possibilities. Each a reflection of human nature amplified or diminished by the mirrors of artificial intelligence."</p>
         </footer>
 
     </div>
 
     <script>
-        // Data is now directly embedded for immediate functionality in this environment.
-        // For actual web server deployments, externalizing this data into a JSON file
-        // and fetching it with 'fetch' remains a valid and scalable approach.
         const dreamData = {
             memory: {
                 id: 'memory',
@@ -136,41 +141,70 @@
         };
 
         const dreamNav = document.getElementById('dream-nav');
-        const dreamTitle = document.getElementById('dream-title');
-        const dreamText = document.getElementById('dream-text');
         const contentDisplay = document.getElementById('content-display');
+        const backButton = document.getElementById('back-button');
+        const dreamTitle = document.getElementById('dream-title');
+        const dreamTextContainer = document.getElementById('dream-text-container');
+        const dreamText = document.getElementById('dream-text');
         let dreamChart;
 
-        function updateContent(dreamId) {
-            const data = dreamData[dreamId];
-            if (!data) return;
+        function showAllCards() {
+            contentDisplay.classList.add('opacity-0', 'hidden');
+            setTimeout(() => {
+                dreamNav.classList.remove('hidden');
+                dreamNav.classList.add('opacity-100');
+            }, 300); // Match CSS transition duration
+        }
 
-            contentDisplay.style.opacity = 0;
+        function showSingleStory(dreamId) {
+            const data = dreamData[dreamId];
+            if (!data) {
+                console.error("Dream data not found for ID:", dreamId);
+                return;
+            }
+
+            // Hide nav and fade out content display
+            dreamNav.classList.add('opacity-0', 'hidden');
 
             setTimeout(() => {
+                // Update content
                 dreamTitle.textContent = data.title;
                 dreamText.textContent = data.text;
+                dreamTextContainer.scrollTop = 0; // Scroll story to top
 
                 if (dreamChart) {
                     dreamChart.data.datasets[0].data = data.chartData;
                     dreamChart.update();
                 }
 
-                document.querySelectorAll('.nav-card').forEach(card => {
-                    card.classList.remove('active');
-                    if (card.dataset.id === dreamId) {
-                        card.classList.add('active');
-                    }
-                });
-
-                contentDisplay.style.opacity = 1;
-            }, 300);
+                // Show content display and fade it in
+                contentDisplay.classList.remove('hidden');
+                setTimeout(() => {
+                    contentDisplay.classList.remove('opacity-0');
+                    contentDisplay.classList.add('opacity-100');
+                }, 10); // Small delay to allow 'hidden' to apply before transition
+            }, 300); // Match CSS transition duration for nav hide
         }
+
+        // Initialize view
+        window.onload = () => {
+            createNav();
+            createChart();
+            showAllCards(); // Start by showing all cards
+
+            // Set up event listeners for navigation cards
+            dreamNav.querySelectorAll('.nav-card').forEach(card => {
+                card.addEventListener('click', () => showSingleStory(card.dataset.id));
+            });
+
+            // Set up event listener for back button
+            backButton.addEventListener('click', showAllCards);
+        };
 
         function createNav() {
             Object.values(dreamData).forEach(dream => {
                 const card = document.createElement('div');
-                card.className = 'nav-card bg-white p-4 rounded-lg shadow-md hover:shadow-xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1';
+                card.className = 'nav-card bg-white p-4 rounded-lg shadow-md hover:shadow-xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1 w-full max-w-sm'; // Added w-full max-w-sm for card width
                 card.dataset.id = dream.id;
                 card.innerHTML = `
                     <div class="flex items-center space-x-4">
@@ -181,7 +215,6 @@
                         </div>
                     </div>
                 `;
-                card.addEventListener('click', () => updateContent(dream.id));
                 dreamNav.appendChild(card);
             });
         }
@@ -195,8 +228,8 @@
                     datasets: [{
                         label: 'Societal Value',
                         data: [],
-                        backgroundColor: 'rgba(8, 145, 178, 0.2)', // cyan-600 with opacity
-                        borderColor: 'rgba(8, 145, 178, 1)', // cyan-600
+                        backgroundColor: 'rgba(8, 145, 178, 0.2)', /* cyan-600 with opacity */
+                        borderColor: 'rgba(8, 145, 178, 1)', /* cyan-600 */
                         borderWidth: 2,
                         pointBackgroundColor: 'rgba(8, 145, 178, 1)',
                         pointBorderColor: '#fff',
@@ -220,14 +253,14 @@
                                     size: 12,
                                     weight: 'bold'
                                 },
-                                color: '#44403c' // stone-700
+                                color: '#44403c' /* stone-700 */
                             },
                             ticks: {
                                 beginAtZero: true,
                                 max: 10,
                                 stepSize: 2,
-                                backdropColor: 'rgba(250, 250, 249, 0.75)', // stone-50 with opacity
-                                color: '#57534e' // stone-600
+                                backdropColor: 'rgba(250, 250, 249, 0.75)', /* stone-50 with opacity */
+                                color: '#57534e' /* stone-600 */
                             }
                         }
                     },
@@ -242,19 +275,8 @@
                 }
             });
         }
-
-        window.onload = () => {
-            createNav();
-            createChart();
-            // Set the initial content based on the first dream found in the data
-            const firstDreamKey = Object.keys(dreamData)[0];
-            if (firstDreamKey) {
-                updateContent(firstDreamKey);
-            } else {
-                document.getElementById('content-display').innerHTML = '<p class="text-red-600 text-center text-lg">No dream data found.</p>';
-            }
-        };
     </script>
 </body>
 </html>
+
 
